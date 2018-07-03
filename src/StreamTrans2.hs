@@ -1,5 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE InstanceSigs              #-}
+{-# LANGUAGE RankNTypes                #-}
 
 module StreamTrans (
     Step(..), Stream(..),
@@ -69,9 +71,9 @@ ap mf m = do
     x <- m
     return (f x)
 
-data Walk s a b = Walk ((s->Step s a) -> s -> Step s b)
+data Walk a b = Walk ( forall s. (s->Step s a) -> s -> Step s b)
 
-instance Functor (Walk s a) where
+instance Functor (Walk a) where
     fmap f (Walk t) = Walk ( \step s -> fmap f (t step s) )
 
 untilNotSkip :: (s->Step s a) -> s -> Step s a
@@ -80,18 +82,26 @@ untilNotSkip step s = case step s of
     Skip s'     -> untilNotSkip step s'
     Yield a' s' -> Yield a' s'
 
-instance Monad (Walk s a) where
+instance Monad (Walk a) where
     return a = Walk (\_ s -> Yield a s)
     Walk t >>= f =
-        Walk (\step s -> case t (untilNotSkip step) s of
-            Done        -> Done
-            Skip _      -> error "Internal error."
-            Yield b' s' -> case f b' of Walk t' -> t' step s'
-      )
+        Walk t' where
+            t' step s = case t (until step) s of
+                Done        -> Done
+                Skip _      -> error "Internal error."
+                Yield b' s' -> case f b' of Walk t'' -> t'' step s'
+                where until :: (s->Step s a) -> s -> Step s a
+                      until step s = case step s of
+                            Done        -> Done
+                            Skip s'     -> untilNotSkip step s'
+                            Yield a' s' -> Yield a' s'
 
-instance Applicative (Walk s a) where
+
+instance Applicative (Walk a) where
     pure = return
     (<*>) = ap
 
-aggregate' :: PreStream s a -> Walk s a b -> Stream b
+{-
+aggregate' :: PreStream s a -> Walk a b -> Stream b
 aggregate' (PreStream step s) (Walk t) = Stream (t step) s
+-}
