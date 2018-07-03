@@ -20,6 +20,8 @@ instance Functor (Step s) where
 
 data Stream a = forall s. Stream (s -> Step s a) s
 
+data PreStream s a = PreStream (s -> Step s a) s
+
 instance Functor Stream where
     fmap f (Stream step s0) = Stream step' s0 where
         step' s' = case (step s') of
@@ -67,10 +69,10 @@ ap mf m = do
     x <- m
     return (f x)
 
-data M s a b = M ((s->Step s a) -> s -> Step s b)
+data Walk s a b = Walk ((s->Step s a) -> s -> Step s b)
 
-instance Functor (M s a) where
-    fmap f (M t) = M ( \step s -> fmap f (t step s) )
+instance Functor (Walk s a) where
+    fmap f (Walk t) = Walk ( \step s -> fmap f (t step s) )
 
 untilNotSkip :: (s->Step s a) -> s -> Step s a
 untilNotSkip step s = case step s of
@@ -78,23 +80,23 @@ untilNotSkip step s = case step s of
     Skip s'     -> untilNotSkip step s'
     Yield a' s' -> Yield a' s'
 
-instance Monad (M s a) where
-    return a = M (\_ s -> Yield a s)
-    M t >>= f =
-        M (\step s -> case t (untilNotSkip step) s of
+instance Monad (Walk s a) where
+    return a = Walk (\_ s -> Yield a s)
+    Walk t >>= f =
+        Walk (\step s -> case t (untilNotSkip step) s of
             Done        -> Done
             Skip _      -> error "Internal error."
-            Yield b' s' -> case f b' of M t' -> t' step s'
+            Yield b' s' -> case f b' of Walk t' -> t' step s'
       )
 
-instance Applicative (M s a) where
+instance Applicative (Walk s a) where
     pure = return
     (<*>) = ap
 
-{-
-aggregate :: Stream a -> M s a b -> Stream b
-aggregate (Stream step s) (M t) = Stream (t step) s
--}
+aggregate' :: PreStream s a -> Walk s a b -> PreStream s b
+aggregate' (PreStream step s) (Walk t) = PreStream (t step) s
+
+
 
 main :: IO ()
 main = do
