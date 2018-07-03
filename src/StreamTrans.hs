@@ -4,7 +4,7 @@
 module StreamTrans (
     Step(..), Stream(..),
     empty, singleton, fromList, toList, foldlS, foldl'S, lengthS,
-    aggregate
+    -- aggregate
 ) where
 
 data Step s a where
@@ -91,8 +91,10 @@ instance Applicative (M s a) where
     pure = return
     (<*>) = ap
 
+{-
 aggregate :: Stream a -> M s a b -> Stream b
 aggregate (Stream step s) (M t) = Stream (t step) s
+-}
 
 main :: IO ()
 main = do
