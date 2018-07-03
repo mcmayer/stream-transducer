@@ -95,9 +95,3 @@ instance Applicative (Walk s a) where
 
 aggregate' :: PreStream s a -> Walk s a b -> PreStream s b
 aggregate' (PreStream step s) (Walk t) = PreStream (t step) s
-
-
-
-main :: IO ()
-main = do
-  putStrLn "hello world"
