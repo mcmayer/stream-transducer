@@ -29,9 +29,18 @@ diff (Stream step s0) = Stream step' (s0, Nothing) where
 showListS :: Show a => Stream a -> String
 showListS = show . toList
 
+sillyTransf :: (Ord a, Num a) => Stream a -> Stream a
+sillyTransf str = aggregate str $ do
+    a <- get
+    b <- get
+    if (b > 1000) then done
+    else  yield $ a + b
+
 main :: IO ()
 main = do
   let fibStr = fibo 20
   print $ lengthS fibStr
   putStrLn $ "fibo=" <> showListS fibStr
+  let fibStr2 = sillyTransf fibStr
+  putStrLn $ "silly=" <> showListS fibStr2
   putStrLn $ "diff=" <> showListS (diff fibStr)
