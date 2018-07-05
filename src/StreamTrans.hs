@@ -22,8 +22,6 @@ instance Functor (Step s) where
 
 data Stream a = forall s. Stream (s -> Step s a) s
 
-data PreStream s a = PreStream (s -> Step s a) s
-
 instance Functor Stream where
     fmap f (Stream step s0) = Stream step' s0 where
         step' s' = case (step s') of
